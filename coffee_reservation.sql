@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 22, 2025 at 03:22 PM
+-- Generation Time: Dec 02, 2025 at 04:55 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -24,6 +24,28 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `feedbacks`
+--
+
+CREATE TABLE `feedbacks` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `reservation_id` int(11) NOT NULL,
+  `rating` int(11) NOT NULL CHECK (`rating` >= 1 and `rating` <= 5),
+  `comment` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `feedbacks`
+--
+
+INSERT INTO `feedbacks` (`id`, `user_id`, `reservation_id`, `rating`, `comment`, `created_at`) VALUES
+(6, 5, 25, 3, 'bati kayog table', '2025-12-02 15:42:30');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `notifications`
 --
 
@@ -37,13 +59,25 @@ CREATE TABLE `notifications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `notifications`
+-- Table structure for table `payments`
 --
 
-INSERT INTO `notifications` (`id`, `user_id`, `reservation_id`, `title`, `message`, `is_read`, `created_at`) VALUES
-(1, 3, 3, 'Reservation Rejected', 'Unfortunately, your reservation has been rejected. Please try another time slot.', 0, '2025-11-22 14:18:51'),
-(2, 2, 2, 'Reservation Approved', 'Your reservation has been approved and confirmed!', 0, '2025-11-22 14:18:52');
+CREATE TABLE `payments` (
+  `id` int(11) NOT NULL,
+  `reservation_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` varchar(50) DEFAULT 'Credit Card',
+  `transaction_id` varchar(100) DEFAULT NULL,
+  `payment_status` enum('pending','completed','failed','refunded') DEFAULT 'completed',
+  `payment_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `card_last_four` varchar(4) DEFAULT NULL,
+  `cardholder_name` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -64,16 +98,16 @@ CREATE TABLE `reservations` (
   `payment_amount` decimal(10,2) DEFAULT 0.00,
   `payment_status` enum('unpaid','paid') DEFAULT 'unpaid',
   `payment_date` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `feedback_submitted` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `reservations`
 --
 
-INSERT INTO `reservations` (`id`, `user_id`, `table_id`, `reservation_date`, `reservation_time`, `duration`, `guests`, `status`, `special_requests`, `payment_amount`, `payment_status`, `payment_date`, `created_at`) VALUES
-(2, 2, 6, '2025-11-22', '15:14:00', 2, 2, 'confirmed', 'wew', 40.00, 'unpaid', NULL, '2025-11-22 14:14:46'),
-(3, 3, 5, '2025-11-28', '14:16:00', 2, 4, 'rejected', '', 60.00, 'unpaid', NULL, '2025-11-22 14:16:37');
+INSERT INTO `reservations` (`id`, `user_id`, `table_id`, `reservation_date`, `reservation_time`, `duration`, `guests`, `status`, `special_requests`, `payment_amount`, `payment_status`, `payment_date`, `created_at`, `feedback_submitted`) VALUES
+(25, 5, 1, '2025-12-02', '16:00:00', 2, 2, 'confirmed', 'wew', 250.00, 'paid', '2025-12-02 15:42:13', '2025-12-02 15:40:45', 1);
 
 -- --------------------------------------------------------
 
@@ -88,22 +122,23 @@ CREATE TABLE `tables` (
   `location` varchar(50) DEFAULT NULL,
   `status` enum('available','reserved','occupied') DEFAULT 'available',
   `image_url` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `price` decimal(10,2) DEFAULT 500.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `tables`
 --
 
-INSERT INTO `tables` (`id`, `table_number`, `capacity`, `location`, `status`, `image_url`, `created_at`) VALUES
-(1, 'T1', 2, 'Window Side', 'available', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', '2025-11-22 12:12:25'),
-(2, 'T2', 4, 'Center', 'available', 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400', '2025-11-22 12:12:25'),
-(3, 'T3', 2, 'Corner', 'available', 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=400', '2025-11-22 12:12:25'),
-(4, 'T4', 6, 'Private Room', 'available', 'https://images.unsplash.com/photo-1567696911980-2eed69a46042?w=400', '2025-11-22 12:12:25'),
-(5, 'T5', 4, 'Patio', 'available', 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400', '2025-11-22 12:12:25'),
-(6, 'T6', 2, 'Window Side', 'available', 'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=400', '2025-11-22 12:12:25'),
-(7, 'T7', 8, 'Large Table', 'available', 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=400', '2025-11-22 12:12:25'),
-(8, 'T8', 4, 'Center', 'available', 'https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?w=400', '2025-11-22 12:12:25');
+INSERT INTO `tables` (`id`, `table_number`, `capacity`, `location`, `status`, `image_url`, `created_at`, `price`) VALUES
+(1, 'T13', 2, 'Center', 'available', 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400', '2025-11-22 12:12:25', 200.00),
+(2, 'T2', 4, 'Center', 'available', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', '2025-11-22 12:12:25', 300.00),
+(3, 'T3', 2, 'Corner', 'available', 'https://images.unsplash.com/photo-1567016432779-094069958ea5?w=400', '2025-11-22 12:12:25', 200.00),
+(4, 'T4', 6, 'Corner', 'available', 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=400', '2025-11-22 12:12:25', 150.00),
+(5, 'T5', 4, 'Center', 'available', 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400', '2025-11-22 12:12:25', 200.00),
+(6, 'T6', 2, 'Window Side', 'available', 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400', '2025-11-22 12:12:25', 300.00),
+(7, 'T7', 8, 'Corner', 'available', 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=400', '2025-11-22 12:12:25', 200.00),
+(8, 'T8', 4, 'Center', 'available', 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=400', '2025-11-22 12:12:25', 250.00);
 
 -- --------------------------------------------------------
 
@@ -126,12 +161,20 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `phone`, `role`, `created_at`) VALUES
-(2, 'admin', 'admin@gmail.com', '$2y$10$bRQBCSoey222paSwneEkVOrcxO4Cm54Z6IqWkTnfwEELzL5N/ratq', '9741052231', 'admin', '2025-11-22 14:14:17'),
-(3, 'user', 'user@gmail.com', '$2y$10$SL.1wPHoJ2phjOfVP4j5vezyNPfaDevMGCQbVdJ7nqDdFl0QMGXXa', '09712566548', 'user', '2025-11-22 14:15:41');
+(4, 'rocky', 'rocky@gmail.com', '$2y$10$6Z4hz68ESMN1q4CkegzdbekKvGp1dfJTMhxMVCpVRs26k7S.yRPGi', '09712566548', 'admin', '2025-11-28 14:51:34'),
+(5, 'Test User', 'user@gmail.com', '$2y$10$riIAhPwyG6lx0b66CGRBnOXNiZBmreCntxpwpBlBksxIkh6o8QT8e', '09712566548', 'user', '2025-12-02 15:40:05');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `feedbacks`
+--
+ALTER TABLE `feedbacks`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `reservation_id` (`reservation_id`),
+  ADD KEY `idx_feedback_user` (`user_id`);
 
 --
 -- Indexes for table `notifications`
@@ -141,6 +184,15 @@ ALTER TABLE `notifications`
   ADD KEY `reservation_id` (`reservation_id`),
   ADD KEY `idx_user_read` (`user_id`,`is_read`),
   ADD KEY `idx_created` (`created_at`);
+
+--
+-- Indexes for table `payments`
+--
+ALTER TABLE `payments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_payment` (`user_id`,`payment_date`),
+  ADD KEY `idx_reservation` (`reservation_id`),
+  ADD KEY `idx_status` (`payment_status`);
 
 --
 -- Indexes for table `reservations`
@@ -170,32 +222,51 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `feedbacks`
+--
+ALTER TABLE `feedbacks`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `payments`
+--
+ALTER TABLE `payments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `tables`
 --
 ALTER TABLE `tables`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `feedbacks`
+--
+ALTER TABLE `feedbacks`
+  ADD CONSTRAINT `feedbacks_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `feedbacks_ibfk_2` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `notifications`
@@ -203,6 +274,13 @@ ALTER TABLE `users`
 ALTER TABLE `notifications`
   ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payments`
+--
+ALTER TABLE `payments`
+  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `reservations`

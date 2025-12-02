@@ -47,8 +47,10 @@ if ($payments_table_check && $payments_table_check->num_rows > 0) {
 $payments_breakdown = [];
 if ($payments_table_check && $payments_table_check->num_rows > 0) {
     $pb = $conn->query("SELECT payment_method, COALESCE(SUM(amount),0) as total, COUNT(*) as cnt FROM payments WHERE payment_status = 'completed' AND DATE(payment_date) BETWEEN '" . $conn->real_escape_string($start_date) . "' AND '" . $conn->real_escape_string($end_date) . "' GROUP BY payment_method");
-    while ($row = $pb->fetch_assoc()) {
-        $payments_breakdown[$row['payment_method']] = ['total' => (float)$row['total'], 'count' => (int)$row['cnt']];
+    if ($pb && $pb->num_rows > 0) {
+        while ($row = $pb->fetch_assoc()) {
+            $payments_breakdown[$row['payment_method']] = ['total' => (float)$row['total'], 'count' => (int)$row['cnt']];
+        }
     }
 } else {
     // Fallback: group by reservations.payment_method if available
@@ -59,8 +61,10 @@ if ($payments_table_check && $payments_table_check->num_rows > 0) {
 // Top tables by reservation count in range
 $top_tables = [];
 $tt = $conn->query("SELECT t.table_number, t.id, COUNT(r.id) as cnt FROM reservations r JOIN tables t ON r.table_id = t.id WHERE r.reservation_date BETWEEN '" . $conn->real_escape_string($start_date) . "' AND '" . $conn->real_escape_string($end_date) . "' GROUP BY t.id ORDER BY cnt DESC LIMIT 5");
-while ($row = $tt->fetch_assoc()) {
-    $top_tables[] = $row;
+if ($tt && $tt->num_rows > 0) {
+    while ($row = $tt->fetch_assoc()) {
+        $top_tables[] = $row;
+    }
 }
 
 // Guests statistics
@@ -164,17 +168,34 @@ $avg_capacity = $cap_q ? (float)$cap_q->fetch_assoc()['avg_capacity'] : 0;
             <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="p-4 border rounded">
                     <h3 class="font-semibold mb-2">Top Tables (by reservations)</h3>
-                    <canvas id="topTablesChart" width="400" height="200"></canvas>
-                    <ul class="mt-3">
+                    <?php if (!empty($top_tables)): ?>
+                    <ul>
                         <?php foreach ($top_tables as $t): ?>
-                            <li class="flex justify-between py-1">Table <?php echo htmlspecialchars($t['table_number']); ?><span><?php echo (int)$t['cnt']; ?></span></li>
+                            <li class="flex justify-between py-2 border-b">
+                                <span>Table <?php echo htmlspecialchars($t['table_number']); ?></span>
+                                <span class="font-bold"><?php echo (int)$t['cnt']; ?> reservations</span>
+                            </li>
                         <?php endforeach; ?>
                     </ul>
+                    <?php else: ?>
+                    <p class="text-gray-500">No reservations in this period.</p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="p-4 border rounded">
-                    <h3 class="font-semibold mb-2">Payments Chart</h3>
-                    <canvas id="paymentsChart" width="400" height="200"></canvas>
+                    <h3 class="font-semibold mb-2">Payments Summary</h3>
+                    <?php if (!empty($payments_breakdown)): ?>
+                    <ul>
+                        <?php foreach ($payments_breakdown as $method => $data): ?>
+                            <li class="flex justify-between py-2 border-b">
+                                <span><?php echo htmlspecialchars($method); ?></span>
+                                <span class="font-bold">₱<?php echo number_format($data['total'], 2); ?> (<?php echo $data['count']; ?> payments)</span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php else: ?>
+                    <p class="text-gray-500">No payments in this period.</p>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -186,105 +207,40 @@ $avg_capacity = $cap_q ? (float)$cap_q->fetch_assoc()['avg_capacity'] : 0;
             var s = document.createElement('script');
             s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js';
             s.async = true; document.head.appendChild(s);
-
-            var c = document.createElement('script');
-            c.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-            c.async = true; document.head.appendChild(c);
         })();
 
         document.getElementById('downloadPdf').addEventListener('click', function(){
             const content = document.getElementById('reportVisible');
             if (!content) return alert('Report content not found');
-            const clone = content.cloneNode(true);
-            clone.style.display = 'block';
-            clone.style.position = 'fixed';
-            clone.style.left = '0'; clone.style.top = '0';
-            clone.style.width = '800px'; clone.style.zIndex = '99999';
-            clone.style.background = '#ffffff'; clone.style.opacity = '0'; clone.style.pointerEvents = 'none';
-            document.body.appendChild(clone);
-
-            const opt = { margin:10, filename: 'daily-report-'+(new Date()).toISOString().slice(0,10)+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2, backgroundColor:'#ffffff', logging:false}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} };
-
+            const opt = { margin:10, filename: 'daily-report-<?php echo $start_date; ?>.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} };
             const waitForLib = () => {
                 if (window.html2pdf) {
-                    html2pdf().set(opt).from(clone).save().then(()=>{
-                        setTimeout(() => document.body.removeChild(clone), 100);
-                    }).catch((e)=>{
-                        console.error(e);
-                        document.body.removeChild(clone);
-                        alert('Failed to generate PDF: ' + e.message);
-                    });
+                    html2pdf().set(opt).from(content).save();
                 } else setTimeout(waitForLib,200);
             };
             waitForLib();
         });
 
-        // Prepare chart data from PHP
-        const topTablesData = <?php echo json_encode(array_column($top_tables, 'cnt')); ?> || [];
-        const topTablesLabels = <?php echo json_encode(array_map(function($r){ return 'Table ' . $r['table_number']; }, $top_tables)); ?> || [];
-
-        const paymentsLabels = <?php echo json_encode(array_keys($payments_breakdown)); ?> || [];
-        const paymentsTotals = <?php echo json_encode(array_map(function($p){ return $p['total']; }, $payments_breakdown)); ?> || [];
-
-        // Render charts once Chart.js is available
-        function renderCharts(){
-            if (!window.Chart) return setTimeout(renderCharts, 200);
-
-            const ctxTop = document.getElementById('topTablesChart').getContext('2d');
-            new Chart(ctxTop, {
-                type: 'bar',
-                data: {
-                    labels: topTablesLabels,
-                    datasets: [{ label: 'Reservations', data: topTablesData, backgroundColor: '#f59e0b' }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-
-            const ctxPay = document.getElementById('paymentsChart').getContext('2d');
-            new Chart(ctxPay, {
-                type: 'pie',
-                data: {
-                    labels: paymentsLabels,
-                    datasets: [{ data: paymentsTotals, backgroundColor: ['#10b981','#3b82f6','#f97316','#ef4444'] }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-        renderCharts();
-
-        // CSV export: compile summary + top tables + payments
         document.getElementById('exportCsv').addEventListener('click', function(){
-            const rows = [];
-            rows.push(['Report','Date Range','<?php echo htmlspecialchars($start_date); ?> to <?php echo htmlspecialchars($end_date); ?>']);
-            rows.push([]);
-            rows.push(['Metric','Value']);
-            rows.push(['New Users','<?php echo (int)$users_today; ?>']);
-            rows.push(['Total Reservations','<?php echo (int)$reservations_today; ?>']);
-            rows.push(['Revenue','<?php echo number_format($revenue_total,2); ?>']);
-            rows.push([]);
-            rows.push(['Reservation Status','Count']);
-            <?php foreach ($status_counts as $st => $cnt): ?>
-                rows.push(['<?php echo htmlspecialchars($st); ?>','<?php echo (int)$cnt; ?>']);
-            <?php endforeach; ?>
-            rows.push([]);
-            rows.push(['Top Tables','Reservations']);
-            <?php foreach ($top_tables as $t): ?>
-                rows.push(['Table <?php echo htmlspecialchars($t['table_number']); ?>','<?php echo (int)$t['cnt']; ?>']);
-            <?php endforeach; ?>
-            rows.push([]);
-            rows.push(['Payments Breakdown','Total']);
-            <?php foreach ($payments_breakdown as $method => $data): ?>
-                rows.push(['<?php echo htmlspecialchars($method); ?>','<?php echo number_format($data['total'],2); ?>']);
-            <?php endforeach; ?>
-
-            // Convert to CSV
-            const csvContent = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
+            const rows = [
+                ['Report Date Range', '<?php echo $start_date; ?> to <?php echo $end_date; ?>'],
+                [],
+                ['Metric', 'Value'],
+                ['New Users', '<?php echo (int)$users_today; ?>'],
+                ['Total Reservations', '<?php echo (int)$reservations_today; ?>'],
+                ['Revenue', '<?php echo number_format($revenue_total,2); ?>'],
+                [],
+                ['Status', 'Count'],
+                <?php foreach ($status_counts as $st => $cnt): ?>
+                ['<?php echo $st; ?>', '<?php echo (int)$cnt; ?>'],
+                <?php endforeach; ?>
+            ];
+            const csvContent = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
             const a = document.createElement('a');
-            a.href = url;
-            a.download = 'daily-report-<?php echo htmlspecialchars($start_date); ?>_to_<?php echo htmlspecialchars($end_date); ?>.csv';
-            document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            a.href = URL.createObjectURL(blob);
+            a.download = 'report-<?php echo $start_date; ?>.csv';
+            a.click();
         });
     </script>
 </body>

@@ -26,7 +26,7 @@ if ($result->num_rows === 0) {
 }
 
 $reservation = $result->fetch_assoc();
-?>
+
 // Fetch latest payment for this reservation (if any)
 $payment = null;
 $stmt = $conn->prepare("SELECT * FROM payments WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
@@ -36,7 +36,7 @@ $payment_result = $stmt->get_result();
 if ($payment_result && $payment_result->num_rows > 0) {
     $payment = $payment_result->fetch_assoc();
 }
-
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,0 +1,43 @@
+img{content-visibility:auto}
+
+/* Custom Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.fade-in { animation: fadeIn 0.5s ease-out; }
+.slide-in { animation: slideIn 0.5s ease-out; }
+
+.card-hover { transition: all 0.3s ease; }
+.card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+.filter-active { background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color:#fff; border-color:#f59e0b; }
+
+.search-box { position: relative; transition: all 0.3s ease; }
+.search-box:focus-within { transform: scale(1.02); }
+
+.badge-animate { animation: pulse 2s infinite; }
+.table-card { background: linear-gradient(135deg,#ffffff 0%,#f9fafb 100%); }
+
+.gradient-border { position:relative; background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); border-radius:12px; padding:2px; }
+.gradient-border-inner { background:#fff; border-radius:10px; }
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #d97706; }

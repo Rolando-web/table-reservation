@@ -1,3 +1,10 @@
+<?php
+if (!ob_start("ob_gzhandler")) ob_start();
+session_start();
+require_once __DIR__ . '/includes/auth.php';
+// Redirect authenticated users straight to their dashboard
+redirectIfLoggedIn();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +13,7 @@
     <title>Coffee Table Reservation System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }

@@ -3,7 +3,7 @@
 if (!ob_start("ob_gzhandler")) ob_start();
 
 session_start();
-require_once 'db.php';
+require_once 'includes/db.php';
 
 $error = '';
 $success = '';
@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Register - Coffee Table Reservation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

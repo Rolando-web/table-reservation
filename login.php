@@ -6,12 +6,11 @@ ini_set('session.gc_probability', 1);
 ini_set('session.gc_divisor', 100);
 
 session_start();
-require_once 'db.php';
+require_once 'includes/db.php';
 
 $error = '';
 $success = '';
 
-// Check for success message from registration
 if (isset($_SESSION['success'])) {
     $success = $_SESSION['success'];
     unset($_SESSION['success']);
@@ -41,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['role'] = $user['role'];
                 
                 // Fast redirect without cache
-                $redirect_url = ($user['role'] === 'admin') ? 'admin_dashboard.php' : 'user_dashboard.php';
+                $redirect_url = ($user['role'] === 'admin') ? 'admin/admin_dashboard.php' : 'user/home.php';
                 header('Location: ' . $redirect_url, true, 302);
                 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
                 header('Pragma: no-cache');
@@ -66,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login - Coffee Table Reservation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -139,6 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <input id="password" name="password" type="password" required 
                                    class="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
                                    placeholder="••••••••">
+                        </div>
+                        <div class="mt-2 text-right">
+                            <a href="forgot_password.php" class="text-xs text-amber-600 hover:text-amber-800">Forgot your password?</a>
                         </div>
                     </div>
 

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db.php';
+require_once '../includes/db.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_GET['reservation_id'])) {
     header('Location: user_dashboard.php');
@@ -27,6 +27,15 @@ if ($result->num_rows === 0) {
 
 $reservation = $result->fetch_assoc();
 ?>
+// Fetch latest payment for this reservation (if any)
+$payment = null;
+$stmt = $conn->prepare("SELECT * FROM payments WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("i", $reservation_id);
+$stmt->execute();
+$payment_result = $stmt->get_result();
+if ($payment_result && $payment_result->num_rows > 0) {
+    $payment = $payment_result->fetch_assoc();
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -37,8 +46,21 @@ $reservation = $result->fetch_assoc();
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body class="bg-gray-100">
+    <nav class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-coffee text-amber-600"></i>
+                <span class="font-semibold text-gray-800">Coffee Table</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="../index.php" class="text-gray-700 hover:text-amber-600">Home</a>
+                <a href="user_dashboard.php" class="text-amber-600 hover:text-amber-800">Dashboard</a>
+            </div>
+        </div>
+    </nav>
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-3xl mx-auto">
             <div class="mb-4 flex justify-between items-center">
@@ -164,6 +186,32 @@ $reservation = $result->fetch_assoc();
                                 <span class="font-semibold"><?php echo date('M d, Y h:i A', strtotime($reservation['payment_date'])); ?></span>
                             </div>
                             <?php endif; ?>
+                            <?php if ($payment): ?>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Payment Method</span>
+                                <span class="font-semibold"><?php echo htmlspecialchars($payment['payment_method']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Transaction ID</span>
+                                <span class="font-semibold"><?php echo htmlspecialchars($payment['transaction_id']); ?></span>
+                            </div>
+                            <?php if ($payment['payment_method'] === 'Credit Card' && !empty($payment['card_last_four'])): ?>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Card</span>
+                                <span class="font-semibold">Ending in <?php echo htmlspecialchars($payment['card_last_four']); ?></span>
+                            </div>
+                            <?php elseif ($payment['payment_method'] === 'GCash' && !empty($payment['card_last_four'])): ?>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">GCash (last 4)</span>
+                                <span class="font-semibold"><?php echo htmlspecialchars($payment['card_last_four']); ?></span>
+                            </div>
+                            <?php elseif ($payment['payment_method'] === 'Cash'): ?>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Payment Note</span>
+                                <span class="font-semibold">Pay on arrival (Cash)</span>
+                            </div>
+                            <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -196,19 +244,12 @@ $reservation = $result->fetch_assoc();
         </div>
     </div>
 
-    <script>
-        function generatePDF() {
-            const element = document.getElementById('receipt');
-            const opt = {
-                margin: 0.5,
-                filename: 'coffee-table-receipt-<?php echo str_pad($reservation['id'], 6, '0', STR_PAD_LEFT); ?>.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            
-            html2pdf().set(opt).from(element).save();
-        }
-    </script>
+    <script src="../assets/js/receipt.js"></script>
+
+    <footer class="mt-12 bg-white border-t">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-600">
+            Contact: <a href="mailto:Mintal@gmail.com" class="text-amber-600 hover:text-amber-800">Mintal@gmail.com</a>
+        </div>
+    </footer>
 </body>
 </html>

@@ -45,15 +45,17 @@
                                             <?php echo date('M d, Y', strtotime($user['created_at'])); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                                <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
-                                                    <input type="hidden" name="delete_user" value="1">
-                                                    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                                    <button type="submit" class="text-red-600 hover:text-red-900">
-                                                        <i class="fas fa-trash"></i> Delete
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
+                                            <div class="flex items-center space-x-3">
+                                                <?php if ($user['id'] != $_SESSION['user_id']): ?>
+                                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                                                        <input type="hidden" name="delete_user" value="1">
+                                                        <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>

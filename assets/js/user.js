@@ -172,8 +172,9 @@ function openPaymentModal(reservationId, amount) {
   document.getElementById('paymentReservationId').value = reservationId;
   document.getElementById('paymentAmount').value = amount;
   document.getElementById('displayAmount').textContent = '₱' + parseFloat(amount).toFixed(2);
-  // Respect previously selected payment method if present, otherwise default to Credit Card
-  const current = document.getElementById('paymentMethod').value || 'Credit Card';
+  // Respect previously selected payment method if present, otherwise default to GCash
+  let current = document.getElementById('paymentMethod').value || 'GCash';
+  if (current !== 'GCash' && current !== 'Cash') current = 'GCash';
   selectPaymentMethod(current);
 }
 
@@ -206,9 +207,7 @@ function selectPaymentMethod(method) {
   const targetBtn = Array.from(methodButtons).find(b => (b.dataset.method || b.getAttribute('data-method')) === method);
   if (targetBtn) {
     // apply styles based on method
-    if (method === 'Credit Card') {
-      targetBtn.classList.add('active','border-amber-500','bg-amber-50');
-    } else if (method === 'GCash') {
+    if (method === 'GCash') {
       targetBtn.classList.add('active','border-blue-500','bg-blue-50');
     } else if (method === 'Cash') {
       targetBtn.classList.add('active','border-green-500','bg-green-50');
@@ -221,21 +220,18 @@ function selectPaymentMethod(method) {
   }
 
   // Toggle fields and required attributes
-  const showCredit = method === 'Credit Card';
   const showGcash = method === 'GCash';
   const showCash = method === 'Cash';
 
-  document.getElementById('creditCardFields').classList.toggle('hidden', !showCredit);
-  document.getElementById('gcashFields').classList.toggle('hidden', !showGcash);
-  document.getElementById('cashFields').classList.toggle('hidden', !showCash);
+  const gcashFields = document.getElementById('gcashFields');
+  const cashFields = document.getElementById('cashFields');
+  if (gcashFields) gcashFields.classList.toggle('hidden', !showGcash);
+  if (cashFields) cashFields.classList.toggle('hidden', !showCash);
 
-  document.getElementById('cardNumber').required = showCredit;
-  document.getElementById('cardExpiry').required = showCredit;
-  document.getElementById('cardCvv').required = showCredit;
-  document.getElementById('cardholderName').required = showCredit;
-
-  document.getElementById('gcashNumber').required = showGcash;
-  document.getElementById('gcashName').required = showGcash;
+  const gcashNumber = document.getElementById('gcashNumber');
+  const gcashName = document.getElementById('gcashName');
+  if (gcashNumber) gcashNumber.required = showGcash;
+  if (gcashName) gcashName.required = showGcash;
 
   btnText.textContent = showGcash ? 'Pay with GCash' : (showCash ? 'Confirm Cash Payment' : 'Pay Now');
 }
@@ -272,10 +268,8 @@ window.addEventListener('load', function() {
     }, 0);
   });
   // Attach click handlers to payment method buttons (defensive: in case inline onclick isn't working)
-  const creditBtn = document.getElementById('btnCreditCard');
   const gcashBtn = document.getElementById('btnGCash');
   const cashBtn = document.getElementById('btnCash');
-  if (creditBtn) creditBtn.addEventListener('click', () => selectPaymentMethod('Credit Card'));
   // instead of individual listeners, attach to all .payment-method-btn to ensure dataset.method is used
   document.querySelectorAll('.payment-method-btn').forEach(b => {
     b.addEventListener('click', (e) => {

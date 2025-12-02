@@ -663,7 +663,24 @@ $all_users = $conn->query("SELECT id, username, email, phone, role, created_at F
         }
 
         function openEditUserModal(userJson) {
-            const user = typeof userJson === 'string' ? JSON.parse(userJson) : userJson;
+            let user;
+            try {
+                if (typeof userJson === 'string') {
+                    try {
+                        // Support URL-encoded JSON
+                        user = JSON.parse(decodeURIComponent(userJson));
+                    } catch (e) {
+                        // Fallback if not encoded
+                        user = JSON.parse(userJson);
+                    }
+                } else {
+                    user = userJson;
+                }
+            } catch (e) {
+                alert('Failed to open edit modal: ' + e.message);
+                console.error('Edit user modal error:', e, userJson);
+                return;
+            }
             document.getElementById('edit_user_id').value = user.id;
             document.getElementById('edit_username').value = user.username;
             document.getElementById('edit_email').value = user.email;
@@ -671,6 +688,42 @@ $all_users = $conn->query("SELECT id, username, email, phone, role, created_at F
             document.getElementById('edit_password').value = '';
             document.getElementById('editUserModal').classList.remove('hidden');
         }
+
+        // Robust delegation: open Edit User modal from buttons with data-edit-user
+        document.addEventListener('click', function(ev) {
+            const btn = ev.target.closest('[data-edit-user]');
+            if (!btn) return;
+            ev.preventDefault();
+            try {
+                let user;
+                // Prefer dataset fields to avoid JSON parsing pitfalls
+                if (btn.dataset && btn.dataset.id) {
+                    user = {
+                        id: parseInt(btn.dataset.id, 10),
+                        username: btn.dataset.username || '',
+                        email: btn.dataset.email || '',
+                        phone: btn.dataset.phone || '',
+                        role: btn.dataset.role || 'user'
+                    };
+                } else if (btn.getAttribute('data-user')) {
+                    // Fallback: try to parse JSON if present
+                    const raw = btn.getAttribute('data-user') || '{}';
+                    try { user = JSON.parse(raw); }
+                    catch(e1) { try { user = JSON.parse(decodeURIComponent(raw)); } catch(e2) {
+                        // Last resort: HTML decode then parse
+                        const ta = document.createElement('textarea');
+                        ta.innerHTML = raw;
+                        user = JSON.parse(ta.value);
+                    }}
+                } else {
+                    throw new Error('No user data on button');
+                }
+                openEditUserModal(user);
+            } catch (e) {
+                console.error('Failed to open edit dialog', e);
+                alert('Unable to open edit dialog. Please refresh and try again.');
+            }
+        });
 
         function closeEditUserModal() {
             document.getElementById('editUserModal').classList.add('hidden');

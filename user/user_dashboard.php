@@ -738,7 +738,7 @@ $user_reservations = $stmt->get_result();
                         
                         <input type="hidden" name="reservation_id" id="paymentReservationId">
                         <input type="hidden" name="payment_amount" id="paymentAmount">
-                        <input type="hidden" name="payment_method" id="paymentMethod" value="Credit Card">
+                        <input type="hidden" name="payment_method" id="paymentMethod" value="GCash">
                         
                         <div class="mb-6 bg-amber-50 p-4 rounded-lg">
                             <div class="flex justify-between items-center">
@@ -751,16 +751,10 @@ $user_reservations = $stmt->get_result();
                         <!-- Payment Method Selection -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-3">Select Payment Method</label>
-                            <div class="grid grid-cols-3 gap-3">
-                                <button type="button" data-method="Credit Card" onclick="selectPaymentMethod('Credit Card')" 
-                                    id="btnCreditCard"
-                                        class="payment-method-btn active flex flex-col items-center justify-center p-4 border-2 border-amber-500 bg-amber-50 rounded-lg hover:bg-amber-100 transition">
-                                    <i class="fas fa-credit-card text-3xl text-amber-600 mb-2"></i>
-                                    <span class="text-sm font-semibold text-gray-800">Credit Card</span>
-                                </button>
+                            <div class="grid grid-cols-2 gap-3">
                                 <button type="button" data-method="GCash" onclick="selectPaymentMethod('GCash')" 
                                     id="btnGCash"
-                                        class="payment-method-btn flex flex-col items-center justify-center p-4 border-2 border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition">
+                                        class="payment-method-btn active flex flex-col items-center justify-center p-4 border-2 border-blue-500 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
                                     <i class="fas fa-mobile-alt text-3xl text-blue-600 mb-2"></i>
                                     <span class="text-sm font-semibold text-gray-800">GCash</span>
                                 </button>
@@ -773,36 +767,6 @@ $user_reservations = $stmt->get_result();
                             </div>
                         </div>
                         
-                        <!-- Credit Card Fields -->
-                        <div id="creditCardFields" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
-                                <input type="text" name="card_number" id="cardNumber" placeholder="1234 5678 9012 3456"
-                                       maxlength="19"
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
-                                    <input type="text" id="cardExpiry" placeholder="MM/YY"
-                                           maxlength="5"
-                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">CVV</label>
-                                    <input type="text" id="cardCvv" placeholder="123"
-                                           maxlength="3"
-                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Cardholder Name</label>
-                                <input type="text" name="cardholder_name" id="cardholderName" placeholder="John Doe"
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            </div>
-                        </div>
 
                         <!-- GCash Fields -->
                         <div id="gcashFields" class="space-y-4 hidden">

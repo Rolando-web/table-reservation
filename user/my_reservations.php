@@ -89,9 +89,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
     $card_expiry = $_POST['card_expiry'] ?? '';
     $card_cvv = $_POST['card_cvv'] ?? '';
     
+    $payment_method = $_POST['payment_method'] ?? 'Cash'; // Cash or GCash
+    $gcash_number = trim($_POST['gcash_number'] ?? '');
+    $gcash_ref = trim($_POST['gcash_ref'] ?? '');
+
+    // Verify eligible to pay: must be this user's reservation, confirmed, and unpaid
+    $stmt = $conn->prepare("SELECT id, status, payment_status FROM reservations WHERE id = ? AND user_id = ? LIMIT 1");
+    $stmt->bind_param("ii", $reservation_id, $user_id);
+    $stmt->execute();
+    $check = $stmt->get_result();
+    if ($check->num_rows === 0) {
+        $_SESSION['error'] = 'Reservation not found.';
+        header('Location: my_reservations.php');
+        exit();
+    }
+    $row = $check->fetch_assoc();
+    if ($row['status'] !== 'confirmed') {
+        $_SESSION['error'] = 'Payment is only available after admin approval.';
+        header('Location: my_reservations.php');
+        exit();
+    }
+    if ($row['payment_status'] === 'paid') {
+        $_SESSION['error'] = 'This reservation is already paid.';
+        header('Location: my_reservations.php');
+        exit();
+    }
+
+    // If GCash, ensure reference or number is provided (basic check)
+    if ($payment_method === 'GCash' && ($gcash_number === '' || $gcash_ref === '')) {
+        $_SESSION['error'] = 'Please provide GCash mobile number and reference number.';
+        header('Location: my_reservations.php');
+        exit();
+    }
+
     $stmt = $conn->prepare("UPDATE reservations SET payment_status = 'paid', payment_date = NOW() WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ii", $reservation_id, $user_id);
-    
+
     if ($stmt->execute()) {
         $_SESSION['success'] = 'Payment processed successfully! Reservation confirmed.';
         // Trigger feedback modal
@@ -258,7 +291,7 @@ $unread_count = $stmt->get_result()->fetch_assoc()['count'];
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center space-x-2">
-                                            <?php if ($reservation['status'] == 'pending' && $reservation['payment_status'] != 'paid'): ?>
+                                            <?php if ($reservation['status'] == 'confirmed' && $reservation['payment_status'] == 'unpaid'): ?>
                                                 <button onclick="openPaymentModal(<?php echo $reservation['id']; ?>, <?php echo $reservation['payment_amount']; ?>)" 
                                                         class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold transition">
                                                     <i class="fas fa-credit-card mr-1"></i>Pay Now
@@ -325,39 +358,25 @@ $unread_count = $stmt->get_result()->fetch_assoc()['count'];
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                                <select name="payment_method" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                    <option value="credit_card">Credit Card</option>
-                                    <option value="debit_card">Debit Card</option>
-                                    <option value="gcash">GCash</option>
-                                    <option value="paymaya">PayMaya</option>
+                                <select id="mrPaymentMethod" name="payment_method" required 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                    <option value="Cash">Cash</option>
+                                    <option value="GCash" selected>GCash</option>
                                 </select>
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
-                                <input type="text" name="card_number" required maxlength="16" 
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                                       placeholder="1234 5678 9012 3456">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Cardholder Name</label>
-                                <input type="text" name="card_name" required 
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                                       placeholder="John Doe">
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
+                            <div id="gcashOnlyFields" class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
-                                    <input type="text" name="card_expiry" required placeholder="MM/YY" maxlength="5"
-                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">GCash Mobile Number</label>
+                                    <input type="tel" name="gcash_number" id="mrGcashNumber" maxlength="12"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                           placeholder="912 345 6789">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">CVV</label>
-                                    <input type="text" name="card_cvv" required maxlength="4"
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Reference No.</label>
+                                    <input type="text" name="gcash_ref" id="mrGcashRef" maxlength="25"
                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                                           placeholder="123">
+                                           placeholder="e.g., 1A2B3C4D5E">
                                 </div>
                             </div>
                         </div>
@@ -383,6 +402,12 @@ $unread_count = $stmt->get_result()->fetch_assoc()['count'];
             document.getElementById('payment_reservation_id').value = reservationId;
             document.getElementById('payment_amount_display').textContent = '₱' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
             document.getElementById('paymentModal').classList.remove('hidden');
+            // Default to GCash and show/hide fields appropriately
+            const select = document.getElementById('mrPaymentMethod');
+            if (select) {
+                if (select.value !== 'Cash' && select.value !== 'GCash') select.value = 'GCash';
+                toggleMrPaymentFields();
+            }
         }
 
         function closePaymentModal() {
@@ -393,6 +418,25 @@ $unread_count = $stmt->get_result()->fetch_assoc()['count'];
             // Placeholder for notifications dropdown
             alert('Notifications feature - check user_dashboard.php for full implementation');
         }
+
+        function toggleMrPaymentFields() {
+            const method = document.getElementById('mrPaymentMethod').value;
+            const gcashFields = document.getElementById('gcashOnlyFields');
+            const num = document.getElementById('mrGcashNumber');
+            const ref = document.getElementById('mrGcashRef');
+            const show = method === 'GCash';
+            gcashFields.classList.toggle('hidden', !show);
+            if (num) num.required = show;
+            if (ref) ref.required = show;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('mrPaymentMethod');
+            if (select) {
+                select.addEventListener('change', toggleMrPaymentFields);
+                toggleMrPaymentFields();
+            }
+        });
 
         function openFeedbackModal(reservationId) {
             document.getElementById('feedback_reservation_id').value = reservationId;

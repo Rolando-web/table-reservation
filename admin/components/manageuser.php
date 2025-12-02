@@ -45,10 +45,6 @@
                                             <?php echo date('M d, Y', strtotime($user['created_at'])); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button onclick='openEditUserModal(<?php echo json_encode($user); ?>)' 
-                                                    class="text-amber-600 hover:text-amber-900 mr-3">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </button>
                                             <?php if ($user['id'] != $_SESSION['user_id']): ?>
                                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
                                                     <input type="hidden" name="delete_user" value="1">
